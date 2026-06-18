@@ -1,2 +1,2 @@
-# Lego_Temporal_Clustering
+# ISYE6740_Project
 
