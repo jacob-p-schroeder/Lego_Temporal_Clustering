@@ -11,3 +11,16 @@ Code/db/datafiles/parts.csv
 Code/db/datafiles/sets.csv
 Code/db/datafiles/themes.csv
 Code/db/lego.db
+Code/data/db/datafiles/colors.csv
+Code/data/db/datafiles/elements.csv
+Code/data/db/datafiles/inventories.csv
+Code/data/db/datafiles/inventory_minifigs.csv
+Code/data/db/datafiles/inventory_parts.csv
+Code/data/db/datafiles/inventory_sets.csv
+Code/data/db/datafiles/minifigs.csv
+Code/data/db/datafiles/part_categories.csv
+Code/data/db/datafiles/part_relationships.csv
+Code/data/db/datafiles/parts.csv
+Code/data/db/datafiles/sets.csv
+Code/data/db/datafiles/themes.csv
+Code/data/db/lego.db
