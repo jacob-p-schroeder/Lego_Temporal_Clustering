@@ -33,6 +33,7 @@ import pandas as pd
 import matplotlib
 matplotlib.use("Agg")  # write to file, no display needed
 import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
 
 RARE_THRESHOLD = 20
 PRINTED_PATTERN = r"(?i)print|pattern|sticker"
@@ -41,8 +42,11 @@ TECHNIC_PATTERN = r"(?i)technic"
 # --- user-editable config -------------------------------------------------
 MIN_PARTS = 20          # drop sets with fewer than this many parts (0 = no filter)
 HISTOGRAM = True        # True: also save a num_parts distribution histogram
-FILTER_SETS = True
+FILTER_SETS = True      # True: filtered cleaned dataset for only standard lego ets
 HISTOGRAM_OUT = os.path.join("num_parts_hist.png")  # where the histogram gets saved when HISTOGRAM=True
+NORMALIZE = True        # True: normalize numerical features
+MIN_COHORT_SIZE = 100   # Minimum window size for clustering years but if the number of years exceeds MAX_WINDOW_YEARS then it is cutoff at a lower amount
+MAX_WINDOW_YEARS = 12   # Max number of years in a feature
 # ---------------------------------------------------------------------------
 
 
@@ -259,6 +263,60 @@ def filter_sets(features: pd.DataFrame) -> pd.DataFrame:
     features = features.dropna()
     return features
 
+def normalize(features: pd.DataFrame) -> pd.DataFrame:
+    exclude_cols = ["set_num", "set_name", "year", "theme_id", "has_minifigs", "year_window", "window_index"]
+    cols_to_scale = [c for c in features.columns if c not in exclude_cols]
+     
+    scaler = StandardScaler()
+    features[cols_to_scale] = scaler.fit_transform(features[cols_to_scale])
+
+    return features
+
+def build_windows(features: pd.DataFrame) -> pd.DataFrame:
+
+    features["year"] = features["year"].astype(int)
+
+    year_counts = features.groupby("year").size().sort_index()
+    print(year_counts)
+    assert list(year_counts.index) == sorted(year_counts.index), "year index not properly sorted"
+
+    windows = []
+    current_years = []
+    current_count = 0
+
+    for year, count in year_counts.items():
+        current_years.append(year)
+        current_count += count
+        if current_count >= MIN_COHORT_SIZE or len(current_years) >= MAX_WINDOW_YEARS:
+            windows.append(current_years)
+            current_years = []
+            current_count = 0
+
+    if current_years:
+        if windows:
+            windows[-1].extend(current_years)
+        else:
+            windows.append(current_years)
+
+    # sanity check: every window should meet MIN_COHORT_SIZE except possibly the last one
+    window_sizes = [year_counts.loc[w].sum() for w in windows]
+    # for i, size in enumerate(window_sizes[:-1]):
+    #     assert size >= MIN_COHORT_SIZE, f"window {i} ({windows[i]}) has only {size} sets"
+
+    year_to_window = {}
+    year_to_index = {}
+    for i, w in enumerate(windows):
+        label = f"{w[0]}-{w[-1]}" if len(w) > 1 else str(w[0])
+        for y in w:
+            year_to_window[y] = label
+            year_to_index[y] = i
+
+    features["year_window"] = features["year"].map(year_to_window)
+    features["window_index"] = features["year"].map(year_to_index)
+
+    return features
+
+
 def main():
     db_path = os.path.join("db", "lego.db")
 
@@ -269,6 +327,7 @@ def main():
             plot_num_parts_histogram(raw_sets, HISTOGRAM_OUT, MIN_PARTS)
 
         features = build_features(conn)
+
 
         n_before = len(features)
         if FILTER_SETS:
@@ -282,12 +341,25 @@ def main():
             f"(dropped {n_before - n_after})"
         )
 
-        feature_out = os.path.join("lego_cleaned_features.csv")
-        features.to_csv(feature_out, index=False)
-        print(f"Wrote {len(features)} rows to {feature_out}")
+        features = build_windows(features) 
+
+        features_out = os.path.join("lego_cleaned_features.csv")
+        features.to_csv(features_out, index=False)
+        print(f"Wrote {len(features)} rows to {features_out}")
 
         features.to_sql("set_features", conn, if_exists="replace", index=False)
         print("Also wrote table 'set_features' back into the database")
+
+        if NORMALIZE:
+            norm_features = normalize(features)
+            
+            norm_features_out = os.path.join("lego_normalized_features.csv")
+            norm_features.to_csv(norm_features_out, index=False)
+            print(f"Wrote {len(norm_features)} rows to {norm_features_out}")
+
+            norm_features.to_sql("norm_set_features", conn, if_exists="replace", index=False)
+            print("Also wrote table 'norm_set_features' back into the database")
+
     finally:
         conn.close()
 
