@@ -183,21 +183,21 @@ Before modeling, I screened this candidate set for multicollinearity using Varia
 \hline
 \textbf{\#} & \textbf{Feature} & \textbf{VIF} \\
 \hline
-0  & num\_parts              & 7217.750094 \\
-1  & total\_part\_count       & 7094.148856 \\
-2  & unique\_part\_count      & 11.570409 \\
-3  & minifig\_count          & 4.740547 \\
-4  & spare\_part\_ratio       & 1.261394 \\
-5  & h\_cat                  & 5.769223 \\
-6  & h\_col                  & 3.789677 \\
-7  & n\_distinct\_colors      & 7.451821 \\
-8  & n\_distinct\_categories  & 14.951731 \\
-9  & prop\_technic           & 1.186818 \\
-10 & prop\_printed           & 1.807966 \\
-11 & prop\_transparent       & 1.102379 \\
-12 & rare\_part\_ratio        & 2.118574 \\
-13 & minifig\_to\_part\_ratio  & 1.168835 \\
-14 & has\_minifigs           & 1.363685 \\
+0  & num\_parts              & 8299.992733 \\
+1  & total\_part\_count       & 8145.789045 \\
+2  & unique\_part\_count      & 13.160328 \\
+3  & minifig\_count          & 5.305488 \\
+4  & spare\_part\_ratio       & 1.297114 \\
+5  & h\_cat                  & 5.350565 \\
+6  & h\_col                  & 3.749628 \\
+7  & n\_distinct\_colors      & 7.882505 \\
+8  & n\_distinct\_categories  & 15.857922 \\
+9  & prop\_technic           & 1.231668 \\
+10 & prop\_printed           & 1.929013 \\
+11 & prop\_transparent       & 1.186414 \\
+12 & rare\_part\_ratio        & 2.373186 \\
+13 & minifig\_to\_part\_ratio  & 1.317496 \\
+14 & has\_minifigs           & 2.428044 \\
 \hline
 \end{tabular}
 \end{table}
@@ -210,18 +210,18 @@ Before modeling, I screened this candidate set for multicollinearity using Varia
 \hline
 \textbf{\#} & \textbf{Feature} & \textbf{VIF} \\
 \hline
-0  & num\_parts              & 2.586191 \\
-1  & unique\_part\_count      & 4.057481 \\
-2  & minifig\_count          & 1.718635 \\
-3  & spare\_part\_ratio       & 1.199358 \\
-4  & h\_cat                  & 2.478656 \\
-5  & h\_col                  & 1.520092 \\
-6  & prop\_technic           & 1.172931 \\
-7  & prop\_printed           & 1.803437 \\
-8  & prop\_transparent       & 1.101653 \\
-9  & rare\_part\_ratio        & 2.110051 \\
-10 & minifig\_to\_part\_ratio  & 1.149472 \\
-11 & has\_minifigs           & 1.350343 \\
+0  & num\_parts              & 2.904824 \\
+1  & unique\_part\_count      & 4.509105 \\
+2  & minifig\_count          & 1.952869 \\
+3  & spare\_part\_ratio       & 1.245666 \\
+4  & h\_cat                  & 2.159906 \\
+5  & h\_col                  & 1.521950 \\
+6  & prop\_technic           & 1.224180 \\
+7  & prop\_printed           & 1.924807 \\
+8  & prop\_transparent       & 1.185894 \\
+9  & rare\_part\_ratio        & 2.363765 \\
+10 & minifig\_to\_part\_ratio  & 1.286617 \\
+11 & has\_minifigs           & 2.123624 \\
 \hline
 \end{tabular}
 \end{table}
@@ -306,10 +306,6 @@ This project gives me a great opportunity to combine a personal passion for LEGO
 \appendix
 \section{Appendix}
 
-
-
-
-
 \subsection{Rebrickable Entity Relationship Diagram}
 \label{sec:appendix_erd}
 
@@ -319,6 +315,50 @@ This project gives me a great opportunity to combine a personal passion for LEGO
     \caption{Database schema for the Rebrickable \cite{rebrickable2024} LEGO dataset. The relational structure links LEGO sets to inventories, parts, colors, themes, and minifigures, providing the foundation for feature engineering and longitudinal analysis of changes in LEGO product design over time.}
     \label{fig:erd}
 \end{figure}
+
+\FloatBarrier
+
+\newpage
+
+\subsection{Breakdown of Number of Sets per Time Window}
+\label{sec:appendix_windows}
+
+\begin{table}[h]
+\centering
+\caption{Number of Sets per Time Window}
+\label{tab:sets_per_window}
+\begin{tabular}{crrr@{\hspace{1.5em}}crrr}
+\hline
+\textbf{Window} & \textbf{num sets} & \textbf{min} & \textbf{max} & \textbf{Window} & \textbf{num sets} & \textbf{min} & \textbf{max} \\
+\hline
+0  & 56  & 1955 & 1966 & 22 & 227 & 2005 & 2005 \\
+1  & 131 & 1967 & 1973 & 23 & 216 & 2006 & 2006 \\
+2  & 110 & 1974 & 1976 & 24 & 209 & 2007 & 2007 \\
+3  & 149 & 1977 & 1979 & 25 & 238 & 2008 & 2008 \\
+4  & 101 & 1980 & 1981 & 26 & 272 & 2009 & 2009 \\
+5  & 137 & 1982 & 1984 & 27 & 252 & 2010 & 2010 \\
+6  & 104 & 1985 & 1985 & 28 & 311 & 2011 & 2011 \\
+7  & 219 & 1986 & 1987 & 29 & 358 & 2012 & 2012 \\
+8  & 134 & 1988 & 1989 & 30 & 362 & 2013 & 2013 \\
+9  & 178 & 1990 & 1991 & 31 & 423 & 2014 & 2014 \\
+10 & 179 & 1992 & 1993 & 32 & 471 & 2015 & 2015 \\
+11 & 105 & 1994 & 1994 & 33 & 496 & 2016 & 2016 \\
+12 & 130 & 1995 & 1995 & 34 & 475 & 2017 & 2017 \\
+13 & 139 & 1996 & 1996 & 35 & 487 & 2018 & 2018 \\
+14 & 181 & 1997 & 1997 & 36 & 479 & 2019 & 2019 \\
+15 & 276 & 1998 & 1998 & 37 & 496 & 2020 & 2020 \\
+16 & 230 & 1999 & 1999 & 38 & 521 & 2021 & 2021 \\
+17 & 265 & 2000 & 2000 & 39 & 508 & 2022 & 2022 \\
+18 & 232 & 2001 & 2001 & 40 & 532 & 2023 & 2023 \\
+19 & 250 & 2002 & 2002 & 41 & 610 & 2024 & 2024 \\
+20 & 269 & 2003 & 2003 & 42 & 640 & 2025 & 2025 \\
+21 & 250 & 2004 & 2004 & 43 & 452 & 2026 & 2026 \\
+\hline
+\end{tabular}
+\end{table}
+
+Number of sets per time window. Each window aggregates one or more consecutive release years to balance sample sizes across the dataset's history; \textbf{Window} is the window index, \textbf{num sets} is the count of LEGO sets falling in that window, and \textbf{min}/\textbf{max} give the first and last release year included in the window.
+
 
 \FloatBarrier
 
