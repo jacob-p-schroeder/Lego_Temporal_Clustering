@@ -330,6 +330,10 @@ def main():
 
 
         n_before = len(features)
+        features = features[features["rare_part_ratio"] <= 1]
+        features = features[features["spare_part_ratio"] <= 1]
+        features = features[features["minifig_to_part_ratio"] <= 1]
+
         if FILTER_SETS:
             features = filter_sets(features)
 
