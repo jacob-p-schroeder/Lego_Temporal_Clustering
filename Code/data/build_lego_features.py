@@ -33,7 +33,7 @@ import pandas as pd
 import matplotlib
 matplotlib.use("Agg")  # write to file, no display needed
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import RobustScaler
 
 RARE_THRESHOLD = 20
 PRINTED_PATTERN = r"(?i)print|pattern|sticker"
@@ -267,7 +267,7 @@ def normalize(features: pd.DataFrame) -> pd.DataFrame:
     exclude_cols = ["set_num", "set_name", "year", "theme_id", "has_minifigs", "year_window", "window_index"]
     cols_to_scale = [c for c in features.columns if c not in exclude_cols]
      
-    scaler = StandardScaler()
+    scaler = RobustScaler()
     features[cols_to_scale] = scaler.fit_transform(features[cols_to_scale])
 
     return features
