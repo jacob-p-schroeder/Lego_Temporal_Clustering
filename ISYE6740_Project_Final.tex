@@ -161,13 +161,17 @@ $c$ is a tunable threshold and $\mu_{\Delta}$ and $\sigma_{\Delta}$ are the mean
 
 The hypothesis is that drift points $t^*$ will cluster near known historical milestones in LEGO's product history. Some examples of this would be the introduction of the Star Wars license in 1999, the near bancruptcy of the company in $2003-2004$, the growth of licensed themes throughout the 2010s, and the growth of adult targetted sets in the 2020s. If these events can be detected using structural, label-free features this would constitute a meaningufl unsupervised result. 
 
-\section{Methodology}
-
-\subsection{Data Source and Preprocessing}
+\section{Data Source}
 
 Data has been sourced from the Rebrickable database \cite{rebrickable2024}, which provides both API and CSV exports for all lego set related data. For this project, I used the CSV export of a large relational database including the following tables: \texttt{sets}, \texttt{themes}, \texttt{parts}, \texttt{part\_categories}, \texttt{colors}, \texttt{inventories}, \texttt{inventory\_parts}, \texttt{inventory\_minifigs}, and \texttt{minifigs}. The complete entity relationship diagram including all attributes can be found in Appendix~\ref{sec:appendix_erd}. These were loaded into a local SQLite database via Python's \texttt{sqlite3} module and queried using \texttt{pandas}. 
 
-Sets with a very small number ($n < 20$) of parts were be excluded as well as non-standard releases (e.g., promotional packs, individual minifigures, individual parts sold as set, merchandise with set numbers). Additionally, years with a small number of sets released in the catalog were grouped using rolling windows to ensure a large enough cohort size for stable clustering. Grouping was accomplished by setting a minimum cohort size (100) along with a maximum number of years per cohort (12). This ensured sufficient cohort size while not allowing for too many years to be clustered. Years with more than the minimum cohort size were evaluated alone. 
+The complete dataset is 149.3 MB containing over 21,500 individual lego sets. 
+
+\section{Methodology}
+
+\subsection{Preprocessing}
+
+Sets with a very small number ($n < 20$) of parts were be excluded as well as non-standard releases (e.g., promotional packs, individual minifigures, individual parts sold as set, merchandise with set numbers). After preprocessing, I am left with just over 12,000 standard lego sets. Additionally, years with a small number of sets released in the catalog were grouped using rolling windows to ensure a large enough cohort size for stable clustering. Grouping was accomplished by setting a minimum cohort size (100) along with a maximum number of years per cohort (12). This ensured sufficient cohort size while not allowing for too many years to be clustered. Years with more than the minimum cohort size were evaluated alone. A detailed breakdown of the number of sets included in each cohort can be found in Appendix~\ref{sec:appendix_windows}.
 
 \subsection{Feature Engineering}
 
@@ -235,7 +239,7 @@ To visualize the structure of the feature space described above, I applied Unifo
 
 Figure \ref{fig:umap_2d} shows the resulting two-dimensional embedding, with points colored by time window to indicate when each set was released. The embedding reveals three to four well-separated clusters, along with a small number of isolated outlier points at the periphery. This separation indicates that the feature set captures genuinely distinct regimes of LEGO sets, likely corresponding to differences in theme, set type, or piece composition, that do not blend continuously into one another.
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{Code/outputs/UMAP_embedding.png}
     \caption{Two-dimensional UMAP embedding of LEGO sets, colored by time window.}
@@ -274,7 +278,7 @@ All code has been written in Python and made available alongside the SQLite data
 
 \noindent\rule{\textwidth}{0.4pt}
 
-\section{Evaluation Strategies}
+\section{Results}
 
 \subsection{Internal Clustering Validity}
 
