@@ -1,23 +1,24 @@
 # Temporal Clustering of LEGO Set Design: Detecting Structural Drift Across Decades
 
-## Table of Contents
+---
 
+## Table of Contents
 1. [Introduction](#1-introduction)
 2. [Problem Statement](#2-problem-statement)
 3. [Data Source](#3-data-source)
 4. [Methodology](#4-methodology)
-   - [4.1 Preprocessing](#41-preprocessing)
-   - [4.2 Feature Engineering](#42-feature-engineering)
-   - [4.3 Dimensionality Reduction for Visualization](#43-dimensionality-reduction-for-visualization)
-   - [4.4 Temporal Clustering](#44-temporal-clustering)
-   - [4.5 Robustness Check via DBSCAN](#45-robustness-check-via-dbscan)
-   - [4.6 Drift Detection](#46-drift-detection)
-   - [4.7 Reproducibility](#47-reproducibility)
+   - 4.1 [Preprocessing](#41-preprocessing)
+   - 4.2 [Feature Engineering](#42-feature-engineering)
+   - 4.3 [Dimensionality Reduction for Visualization](#43-dimensionality-reduction-for-visualization)
+   - 4.4 [Temporal Clustering](#44-temporal-clustering)
+   - 4.5 [Robustness Check via DBSCAN](#45-robustness-check-via-dbscan)
+   - 4.6 [Drift Detection](#46-drift-detection)
+   - 4.7 [Reproducibility](#47-reproducibility)
 5. [Results](#5-results)
-   - [5.1 Optimal Number of Clusters](#51-optimal-number-of-clusters)
-   - [5.2 Temporal Clustering](#52-temporal-clustering)
-   - [5.3 DBSCAN Robustness and External Validation](#53-dbscan-robustness-and-external-validation)
-   - [5.4 Limitations and Future Work](#54-limitations-and-future-work)
+   - 5.1 [Optimal Number of Clusters](#51-optimal-number-of-clusters)
+   - 5.2 [Temporal Clustering](#52-temporal-clustering)
+   - 5.3 [DBSCAN Robustness and External Validation](#53-dbscan-robustness-and-external-validation)
+   - 5.4 [Limitations and Future Work](#54-limitations-and-future-work)
 6. [Conclusion](#6-conclusion)
 7. [Appendix](#7-appendix)
 8. [References](#references)
@@ -28,68 +29,69 @@
 
 LEGO has a fascinating history. Originating in Denmark in 1932, it began as a small wooden toy manufacturer. Since then it has grown into one of the most iconic toys ever produced. The LEGO brick as we know it today was introduced in 1958, and since then the brand has released thousands of distinct sets spanning dozens of licensed and original themes. Everything from the earliest Town and Castle series released in the 1970s, to the endlessly popular Star Wars licensed sets released beginning in the late 1990s, to the adult-targeted Icons and Architecture lines released for those of us who haven't fully grown up yet — each set comes with hundreds of individual parts, colors, minifigures and other characteristics that make it both distinct and part of a greater collection.
 
-Over the years, LEGO sets have evolved in piece count, colors, set complexity, and other key changes that make LEGO what they are. Things like the first LEGO sets with instructions being introduced in 1964, LEGO Technic introducing an entirely new style of piece added in 1977, the first Star Wars licensed set released in 1999, and robotics getting added with LEGO Mindstorms in 2006 have all been critical additions which have shaped the brand and the composition of those sets. This project examines that composition and how it has changed over the years.
+Over the years, LEGO sets have evolved in piece count, colors, set complexity, and other key changes that make LEGO what they are. Things like the first LEGO sets with instructions being introduced in 1964, LEGO Technic introducing an entirely new style of piece getting added in 1977, the first Star Wars licensed set released in 1999, and robotics getting added with LEGO Mindstorms in 2006 have all been critical additions which have shaped the brand and the composition of those sets. This project examines that composition and how it has changed over the years.
 
 ## 2. Problem Statement
 
 > *Can unsupervised machine learning detect meaningful structural shifts in LEGO set design over time, and do those detected shifts correspond to known historical events in the company's history?*
 
-This is the question that this project answers using temporal clustering [[Chi et al., 2007]](#references) and distributional drift detection [[Gama et al., 2014]](#references). Over the past several decades, LEGO has expanded from a company focusing primarily on traditional building sets to a global entertainment brand encompassing licensed franchises, collector-focused products, and highly specialized themes. These changes are incredibly well documented from a business perspective, but it can be very unclear how LEGO's product designs have evolved over time when viewed solely through the characteristics of the sets.
+This is the question that this project answers using temporal clustering [1] and distributional drift detection [3]. Over the past several decades, LEGO has expanded from a company focusing primarily on traditional building sets to a global entertainment brand encompassing licensed franchises, collector-focused products, and highly specialized themes. These changes are incredibly well documented from a business perspective, but it can be very unclear how LEGO's product designs have evolved over time when viewed solely through the characteristics of the sets.
 
 The objective of this project is to analyze the evolution of LEGO products from the 1950s through the present day using unsupervised machine learning techniques. Specifically, LEGO sets will be grouped into clusters based on structural and design-related features, and the analysis examines how these clusters change over time. When looking at the shifts in the composition of clusters across different years, the expectation is that certain substantial changes will appear aligning with major changes to LEGO's product portfolio.
 
-Let $S = \{s_1, s_2, \dots, s_N\}$ denote the full catalog of official LEGO sets — those released for standard sale, not including promotional materials, special editions, or subsets sold as larger groups. Each set $s_i$ is characterized by a feature vector $\mathbf{x}_i \in \mathbb{R}^d$ derived from its structural composition. Each set carries a release year $y_i \in \{1955, \dots, 2026\}$. We partition $S$ into cohorts made up of one or more years, $C_t = \{s_i : y_i = t\}$, for each time period $t$.
+Let $S = \{s_1, s_2, ..., s_N\}$ denote the full catalog of official LEGO sets — those being the sets released for standard sale and not including any of the promotional materials, special editions, or subsets which are sold as larger groups. Each set $s_i$ is characterized by a feature vector $\mathbf{x}_i \in \mathbb{R}^d$ derived from its structural composition. Each set carries a release year $y_i \in \{1955, ..., 2026\}$. We partition $S$ into cohorts made up of one or more years, $C_t = \{s_i : y_i = t\}$ for each time period $t$.
 
 There are two ideas at the core of this problem:
 
-1. **Temporal Clustering:** For each cohort $C_t$, this project fits a clustering model $K_t$ that partitions sets into $k$ groups based on structural similarity. The cluster centroids $\{\mu_1^{(t)}, \dots, \mu_k^{(t)}\}$ are tracked for each period $t$.
-2. **Drift Detection:** Measuring the degree of distributional change between consecutive cohort clusterings $K_t$ and $K_{t+1}$ using a quantitative dissimilarity metric. This identifies specific years, $t^*$, where this dissimilarity exceeds a threshold. These years are noted as *drift points*.
+1. **Temporal Clustering:** For each cohort $C_t$, this project fits a clustering model $K_t$ that partitions sets into $k$ groups based on structural similarity. The cluster centroids are tracked $\{\mu_1^{(t)}, ..., \mu_k^{(t)}\}$ for each period $t$.
+2. **Drift Detection:** Measuring the degree of distributional change between consecutive cohort clusterings $K_t$ and $K_{t+1}$ using a quantitative dissimilarity metric. This will identify specific years, $t^*$, where this dissimilarity exceeds a threshold. These years will be noted as *drift points*.
 
 A formal notation of the goal of this project is to estimate:
 
 $$
-\Delta_t = \text{drift}(K_t, K_{t+1}), \quad t \in \{1955, \dots, 2026\}
+\Delta_t = \text{drift}(K_t, K_{t+1}), \quad t \in \{1955, ..., 2026\}
 $$
 
-where $\text{drift}(K_t, K_{t+1})$ is the drift shown by clustering dissimilarity, measured using centroid displacement and the Adjusted Rand Index. A detected drift point is defined as:
+where $\text{drift}(K_t, K_{t+1})$ is the drift shown by clustering dissimilarity measured using centroid displacement and Adjusted Rand Index. A detected drift point is defined as:
 
 $$
 t^* = \{t : \Delta_t > \mu_{\Delta} + c\,\sigma_{\Delta}\}
 $$
 
-where $c$ is a tunable threshold and $\mu_{\Delta}$ and $\sigma_{\Delta}$ are the mean and standard deviation of $\Delta_t$ across all years.
+$c$ is a tunable threshold and $\mu_{\Delta}$ and $\sigma_{\Delta}$ are the mean and standard deviation of $\Delta_t$ across all years.
 
-The hypothesis is that drift points $t^*$ will cluster near known historical milestones in LEGO's product history — for example, the introduction of the Star Wars license in 1999, the near-bankruptcy of the company in 2003–2004, the growth of licensed themes throughout the 2010s, and the growth of adult-targeted sets in the 2020s. If these events can be detected using structural, label-free features, this would constitute a meaningful unsupervised result.
+The hypothesis is that drift points $t^*$ will cluster near known historical milestones in LEGO's product history. Some examples of this would be the introduction of the Star Wars license in 1999, the near bankruptcy of the company in 2003–2004, the growth of licensed themes throughout the 2010s, and the growth of adult-targeted sets in the 2020s. If these events can be detected using structural, label-free features, this would constitute a meaningful unsupervised result.
 
 ## 3. Data Source
 
-Data has been sourced from the Rebrickable database [[Rebrickable, 2024]](#references), which provides both API and CSV exports for all LEGO set–related data. For this project, the CSV export of a large relational database was used, including the following tables: `sets`, `themes`, `parts`, `part_categories`, `colors`, `inventories`, `inventory_parts`, `inventory_minifigs`, and `minifigs`. The complete entity relationship diagram including all attributes can be found in [Appendix A](#71-rebrickable-entity-relationship-diagram). These were loaded into a local SQLite database via Python's `sqlite3` module and queried using `pandas`.
+Data has been sourced from the Rebrickable database [6], which provides both API and CSV exports for all LEGO set related data. For this project, the CSV export of a large relational database was used, including the following tables: `sets`, `themes`, `parts`, `part_categories`, `colors`, `inventories`, `inventory_parts`, `inventory_minifigs`, and `minifigs`. The complete entity relationship diagram including all attributes can be found in [Appendix 7.1](#71-rebrickable-entity-relationship-diagram). These were loaded into a local SQLite database via Python's `sqlite3` module and queried using `pandas`.
 
-The complete dataset is 149.3 MB, containing over 21,500 individual LEGO sets.
+The complete dataset is 149.3 MB containing over 21,500 individual LEGO sets.
 
 ## 4. Methodology
 
 ### 4.1 Preprocessing
 
-The data has some flaws which were handled in preprocessing. The primary one to fix is the large number of sets containing one piece. LEGO assigns a set number to all items it sells, including merchandise that is not bricks at all (see the `num_parts` distribution below).
+The data has some flaws which will be handled in preprocessing. The primary one to fix is the large number of sets containing one piece. LEGO assigns a set number to all items it sells including merchandise that is not bricks at all. See the figure below for a breakdown of how the sets are distributed.
 
-> **Figure 1.** Histogram showing the number of sets containing a specific number of parts. Notice the large skew towards the left, with a disproportionate number of sets sitting at 1. The red vertical line represents the cutoff line for this analysis. Sets with fewer parts are considered "not standard." While some "standard" sets may be eliminated, this is determined to be the best way to get a clean dataset.
-> `images/num_parts_hist.png`
+![Histogram of number of sets by part count](images/num_parts_hist.png)
 
-Sets with a very small number ($n < 20$) of parts were excluded, as well as non-standard releases (e.g., promotional packs, individual minifigures, individual parts sold as a set, merchandise with set numbers). After preprocessing, just over 12,000 standard LEGO sets remained. Additionally, years with a small number of sets released in the catalog were grouped using rolling windows to ensure a large enough cohort size for stable clustering. Grouping was accomplished by setting a minimum cohort size (100) along with a maximum number of years per cohort (12). This ensured sufficient cohort size while not allowing too many years to be clustered together. Years with more than the minimum cohort size were evaluated alone. A detailed breakdown of the number of sets included in each cohort can be found in [Appendix B](#72-breakdown-of-number-of-sets-per-time-window).
+*Figure: Histogram showing the number of sets containing a specific number of parts. Notice the large skew towards the left with a disproportionate number of sets sitting at 1. The red vertical line represents the cutoff line for this analysis. Sets with fewer parts are considered "not standard." While some "standard" sets may be eliminated, this is determined to be the best way to get a clean dataset.*
+
+Sets with a very small number ($n < 20$) of parts were excluded, as well as non-standard releases (e.g., promotional packs, individual minifigures, individual parts sold as a set, merchandise with set numbers). After preprocessing, just over 12,000 standard LEGO sets remained. Additionally, years with a small number of sets released in the catalog were grouped using rolling windows to ensure a large enough cohort size for stable clustering. Grouping was accomplished by setting a minimum cohort size (100) along with a maximum number of years per cohort (12). This ensured sufficient cohort size while not allowing too many years to be clustered together. Years with more than the minimum cohort size were evaluated alone. A detailed breakdown of the number of sets included in each cohort can be found in [Appendix 7.2](#72-breakdown-of-number-of-sets-per-time-window).
 
 ### 4.2 Feature Engineering
 
 Each set $s_i$ is represented by a $d$-dimensional feature vector spanning four categories:
 
 - **Scale:** total part count, unique part count, minifigure count, spare part ratio
-- **Diversity:** Shannon entropy of part categories ($H_{\text{cat}}$), Shannon entropy of colors ($H_{\text{col}}$), number of distinct colors, number of distinct part categories
-- **Composition:** proportion of Technic parts, proportion of decorative/printed parts, proportion of transparent parts (via `colors.is_trans`), rare part ratio (parts appearing in fewer than 20 sets)
+- **Diversity:** Shannon entropy of part categories $H_\text{cat}$, Shannon entropy of colors $H_\text{col}$, number of distinct colors, number of distinct part categories
+- **Composition:** proportion of Technic parts, proportion of decorative/printed parts, proportion of transparent parts (via `colors.is_trans`), rare part ratio for parts appearing in fewer than 20 sets
 - **Minifigure characteristics:** minifigure-to-part ratio, a binary indicator for minifigure presence
 
-Before modeling, this candidate set was screened for multicollinearity using Variance Inflation Factors (Table 1). Two features stood out immediately: `total_part_count` and `num_parts` had VIF values above 7000, reflecting their near-total redundancy, and `n_distinct_categories` exceeded the common threshold of 10. Both `total_part_count` and `n_distinct_categories` were removed, and VIF was recomputed on the remaining twelve features (Table 2); all values fell below 5, indicating the reduced set carries largely independent information.
+Before modeling, this candidate feature set was screened for multicollinearity using Variance Inflation Factors (VIF).
 
-**Table 1. Variance Inflation Factors (Original Feature Set)**
+**Table: Variance Inflation Factors (Original Feature Set)**
 
 | # | Feature | VIF |
 |---|---|---:|
@@ -109,7 +111,9 @@ Before modeling, this candidate set was screened for multicollinearity using Var
 | 13 | minifig_to_part_ratio | 1.317496 |
 | 14 | has_minifigs | 2.428044 |
 
-**Table 2. Variance Inflation Factors (Reduced Feature Set)**
+Two features stood out immediately: `total_part_count` and `num_parts` had VIF values above 7000, reflecting their near-total redundancy, and `n_distinct_categories` exceeded the common threshold of 10. Both `total_part_count` and `n_distinct_categories` were removed and VIF recomputed on the remaining twelve features; all values fell below 5, indicating the reduced set carries largely independent information.
+
+**Table: Variance Inflation Factors (Reduced Feature Set)**
 
 | # | Feature | VIF |
 |---|---|---:|
@@ -130,34 +134,35 @@ The retained twelve features still span the same three functional roles: scale a
 
 ### 4.3 Dimensionality Reduction for Visualization
 
-To visualize the structure of the feature space described above, Uniform Manifold Approximation and Projection (UMAP) [[McInnes et al., 2018]](#references) was applied to the normalized feature matrix. UMAP was chosen over alternatives such as PCA or $t$-SNE for its ability to preserve both local neighborhood structure and, to a reasonable extent, global relationships between clusters, while remaining computationally efficient on the dataset size. A neighborhood size of $n_{\text{neighbors}} = 15$ and minimum distance of $0.1$ were used, projecting the data into two components for the primary visualization and three components as a check on whether additional structure emerges beyond what is visible in two dimensions.
+To visualize the structure of the feature space described above, Uniform Manifold Approximation and Projection (UMAP) [5] was applied to the normalized feature matrix. UMAP was chosen over alternatives such as PCA or $t$-SNE for its ability to preserve both local neighborhood structure and, to a reasonable extent, global relationships between clusters, while remaining computationally efficient on the dataset size. A neighborhood size of $n_{\text{neighbors}} = 15$ and minimum distance of $0.1$ were used, projecting the data into two components for the primary visualization and three components as a check on whether additional structure emerges beyond what is visible in two dimensions.
 
-> **Figure 2.** Two-dimensional UMAP embedding of LEGO sets, colored by time window.
-> `Code/outputs/UMAP_embedding.png`
+The figure below shows the resulting two-dimensional embedding, with points colored by time window to indicate when each set was released. The embedding reveals three to four well-separated clusters, along with a small number of isolated outlier points at the periphery. This separation indicates that the feature set captures genuinely distinct regimes of LEGO sets, likely corresponding to differences in theme, set type, or piece composition, that do not blend continuously into one another.
 
-The resulting two-dimensional embedding reveals three to four well-separated clusters, along with a small number of isolated outlier points at the periphery. This separation indicates that the feature set captures genuinely distinct regimes of LEGO sets, likely corresponding to differences in theme, set type, or piece composition, that do not blend continuously into one another.
+![UMAP 2D embedding](Code/outputs/UMAP_embedding.png)
+
+*Figure: Two-dimensional UMAP embedding of LEGO sets, colored by time window.*
 
 Notably, time window color is thoroughly mixed within each cluster rather than segregated: early and late sets of a given type occupy the same region of the embedding. This suggests that time of release is not the dominant axis separating set types, since a strong time effect would appear as solid-colored blobs rather than mixed ones. A weaker secondary time trend is still visible, however: later sets tend to concentrate toward the outer edges of each cluster, while earlier sets sit closer to the center, implying that set characteristics drift gradually over time within a given type even though type itself is the primary driver of cluster membership.
 
 The embedding also exhibits several thin tendrils connecting or extending from the main clusters. These likely correspond to sets that are transitional between two categories, or to sparsely represented set variants such as reissues. Identifying which sets populate these bridging regions is a natural next step for validating the semantic meaning of the clusters.
 
-To confirm that two dimensions are sufficient to capture the dominant structure, the embedding was repeated with three components and inspected from multiple viewing angles (see [Appendix D](#74-additional-umap-visualizations)). The three-dimensional projection reproduces the same three-cluster structure and the same within-cluster mixing of time windows observed in two dimensions, with no additional cluster or separation emerging along the third axis. This indicates that the two-dimensional embedding is not discarding meaningful structure, and that two components are adequate for downstream visualization and interpretation.
+To confirm that two dimensions are sufficient to capture the dominant structure, the embedding was repeated with three components and inspected from multiple viewing angles (see [Appendix 7.3](#73-additional-umap-visualizations)). The three-dimensional projection reproduces the same three-cluster structure and the same within-cluster mixing of time windows observed in two dimensions, with no additional cluster or separation emerging along the third axis. This indicates that the two-dimensional embedding is not discarding meaningful structure, and that two components are adequate for downstream visualization and interpretation.
 
 ### 4.4 Temporal Clustering
 
 The optimal number of clusters $k$ is selected using the elbow method and silhouette score analysis on the second-to-last cohort rather than the most recent one. The final cohort in the dataset does not correspond to a complete year, since it captures only the partial set of releases available at the time of data collection, whereas the second-to-last cohort corresponds to 2025, the most recent complete year of releases. Selecting $k$ from a full year avoids anchoring the clustering solution to an incomplete and potentially unrepresentative sample. Cluster fitting itself proceeds backward in time, beginning from this reference cohort and moving through earlier cohorts, so that each earlier cohort's structure is interpreted relative to present-day design conventions rather than relative to the earliest sets in the catalog. Drift, by contrast, is calculated moving forward through time: $\Delta_t$ measures the change from cohort $t$ to cohort $t+1$, so that detected drift points $t^*$ correspond to the year in which a shift occurred, consistent with the historical framing in [Section 2](#2-problem-statement).
 
-To address any concern that standard $k$-means clustering applied independently per cohort may produce inconsistent labeling (the "cluster correspondence problem"), centroids were matched across consecutive years using the Hungarian algorithm to minimize total centroid displacement [[Kuhn, 1955]](#references).
+To address any concern that standard $k$-means clustering applied independently per cohort may produce inconsistent labeling (the "cluster correspondence problem"), centroids were matched across consecutive years using the Hungarian algorithm to minimize total centroid displacement [4].
 
 ### 4.5 Robustness Check via DBSCAN
 
-As a robustness check on the $k$-means-based temporal clustering, DBSCAN [[Ester et al., 1996]](#references) was additionally fit to each cohort $\mathcal{C}_t$. Unlike $k$-means, DBSCAN does not require a fixed number of clusters to be specified in advance and can identify clusters of arbitrary shape, while explicitly labeling low-density points as noise rather than forcing them into the nearest cluster. This makes it a useful check on two assumptions underlying the primary $k$-means approach: first, that the fixed value of $k$ selected from the 2025 reference cohort remains an appropriate choice across earlier cohorts with potentially different underlying structure, and second, that LEGO sets naturally form roughly spherical, similarly sized groups in feature space — an assumption implicit in $k$-means but not required by DBSCAN. Rather than treating DBSCAN as a competing model to be scored against $k$-means, its purpose here is diagnostic: if DBSCAN, run independently and without the constraint of a fixed $k$, recovers a broadly similar number and shape of clusters within each cohort, this lends confidence that the cluster structure detected by $k$-means reflects genuine groupings in the data rather than an artifact of its shape assumptions. If DBSCAN instead reveals substantially different structure, particularly within cohorts flagged as drift points, this would signal that conclusions drawn from the $k$-means clustering warrant additional caution rather than invalidating them outright.
+As a robustness check on the $k$-means-based temporal clustering, DBSCAN [2] was additionally fit to each cohort $\mathcal{C}_t$. Unlike $k$-means, DBSCAN does not require a fixed number of clusters to be specified in advance and can identify clusters of arbitrary shape, while explicitly labeling low-density points as noise rather than forcing them into the nearest cluster. This makes it a useful check on two assumptions underlying the primary $k$-means approach: first, that the fixed value of $k$ selected from the 2025 reference cohort remains an appropriate choice across earlier cohorts with potentially different underlying structure, and second, that LEGO sets naturally form roughly spherical, similarly sized groups in feature space, an assumption implicit in $k$-means but not required by DBSCAN. Rather than treating DBSCAN as a competing model to be scored against $k$-means, its purpose here is diagnostic: if DBSCAN, run independently and without the constraint of a fixed $k$, recovers a broadly similar number and shape of clusters within each cohort, this lends confidence that the cluster structure detected by $k$-means reflects genuine groupings in the data rather than an artifact of its shape assumptions. If DBSCAN instead reveals substantially different structure, particularly within cohorts flagged as drift points, this would signal that conclusions drawn from the $k$-means clustering warrant additional caution rather than invalidating them outright.
 
 ### 4.6 Drift Detection
 
 The dissimilarity between consecutive clustering solutions was measured using two metrics:
 
-1. **Adjusted Rand Index (ARI):** For sets present in both cohorts $\mathcal{C}_t$ and $\mathcal{C}_{t+1}$ (overlapping years), ARI measures the agreement between the two clustering assignments. A sharp drop in ARI signals structural reorganization [[Mishra & Stamp, 2025]](#references).
+1. **Adjusted Rand Index (ARI):** For sets present in both cohorts $\mathcal{C}_t$ and $\mathcal{C}_{t+1}$ (overlapping years), ARI measures the agreement between the two clustering assignments. A sharp drop in ARI signals structural reorganization [7].
 2. **Centroid displacement:** The average Euclidean distance between matched centroid pairs $\|\mu_j^{(t+1)} - \mu_j^{(t)}\|_2$, averaged over all $k$ clusters, captures smooth directional drift even when set membership does not overlap between cohorts.
 
 ### 4.7 Reproducibility
@@ -168,26 +173,28 @@ All code has been written in Python and made available alongside the SQLite data
 
 ### 5.1 Optimal Number of Clusters
 
-One of the key aspects of comparison in this project is determining the number of clusters to use in the temporal clustering. A minimum number of clusters larger than 2 was defined, and cluster comparison was run on the second-to-last epoch. Silhouette scores [[Rousseeuw, 1987]](#references) and the elbow method were compared to determine the best cluster count to use throughout.
+One of the key aspects of comparison in this project is determining the number of clusters to use in the temporal clustering. A minimum number of clusters was specifically defined as larger than 2. Cluster comparison was then run on the second-to-last epoch, comparing silhouette scores [8] and the elbow method to determine the best cluster count to use throughout the clusters.
 
-> **Figure 3.** Elbow method (inertia, blue) and silhouette score (green) across $k = 4$–$15$. Inertia shows a steep drop through $k=6$ before flattening, with a secondary bend around $k=8$. Silhouette score peaks at $k=4$ (0.51) and declines steadily thereafter, confirming $k=4$ as the optimal number of clusters.
-> `Code/outputs/combined_plt.png`
+![Elbow and silhouette combined plot](Code/outputs/combined_plt.png)
+
+*Figure: Elbow method (inertia, blue) and silhouette score (green) across k=4–15. Inertia shows a steep drop through k=6 before flattening, with a secondary bend around k=8. Silhouette score peaks at k=4 (0.51) and declines steadily thereafter, confirming k=4 as the optimal number of clusters.*
 
 ### 5.2 Temporal Clustering
 
-> **Figure 4.** Mean centroid drift across consecutive clustering runs, with the gray dotted line marking the mean drift ($\mu = 11.71$) and the red dashed line marking the drift-point threshold ($\mu + 1\sigma = 18.23$). Nine transitions (red points) exceed this threshold and are flagged as significant drift events ($t^*$), concentrated in the early-1980s to early-1990s period and recurring more frequently from the early 2000s through 2025.
-> `Code/outputs/centroid_drift_threshold.png`
+![Centroid drift threshold plot](Code/outputs/centroid_drift_threshold.png)
 
-The mean and standard deviation of the drift values were computed as $\mu_\delta = 11.709$ and $\sigma_\delta = 6.519$, yielding a drift-point threshold of $\mu_\delta + 1\sigma_\delta = 18.228$ (dashed red line, Figure 4). Applying this threshold flagged 9 of the 43 transitions as significant drift points $t^*$, summarized in Table 4 and shown as red markers in Figure 4. Full drift metrics for every transition, including mean, max, and total centroid displacement, are reported in Table 3 ([Appendix E](#75-temporal-drift-results)).
+*Figure: Mean centroid drift across consecutive clustering runs, with the gray dotted line marking the mean drift ($\mu = 11.71$) and the red dashed line marking the drift-point threshold ($\mu + 1\sigma = 18.23$). Nine transitions (red points) exceed this threshold and are flagged as significant drift events ($t^*$), concentrated in the early-1980s to early-1990s period and recurring more frequently from the early 2000s through 2025.*
+
+The mean and standard deviation of the drift values were computed as $\mu_\delta = 11.709$ and $\sigma_\delta = 6.519$, yielding a drift-point threshold of $\mu_\delta + 1\sigma_\delta = 18.228$ (dashed red line, figure above). Applying this threshold flagged 9 of the 43 transitions as significant drift points $t^*$, summarized in the table below. Full drift metrics for every transition, including mean, max, and total centroid displacement, are reported in [Appendix 7.5](#75-temporal-drift-results).
 
 Several of the flagged drift points align closely with the historical milestones hypothesized in [Section 2](#2-problem-statement). Most notably, the 2003 and 2004 windows both register drift values well above threshold (22.328 and 20.273, respectively), consistent with the well-documented near-bankruptcy and subsequent restructuring the company underwent during this period. Similarly, the cluster of drift points in the early 2020s (2022, 2023, and 2025) corresponds to the period of rapid growth in adult-targeted product lines discussed in [Section 2](#2-problem-statement), and the 2007–2008 drift points plausibly reflect the broader product-line consolidation that followed LEGO's earlier financial difficulties as the company diversified its licensed offerings. Not every hypothesized milestone produced a detectable drift point, however: the introduction of the Star Wars license in 1999 does not appear among the flagged transitions, suggesting that this change, while commercially significant, may not have produced a large enough shift in the structural features used here (part composition, minifigure ratios, color and category entropy) to register as statistical drift, or that its effects were absorbed gradually across several neighboring cohorts rather than concentrated in a single transition.
 
-Two additional drift points, 1982–1984 and 1992–1993, do not correspond to any milestone identified a priori in [Section 2](#2-problem-statement). Both occur in relatively early, lower-volume windows (137 and 179 sets respectively, per Table 5), where smaller cohort sizes can produce noisier centroid estimates and inflate apparent drift independent of any genuine structural shift. This suggests that some flagged points, particularly in the earlier decades of the catalog, may partly reflect sampling variability rather than a true change in set design philosophy — a limitation worth weighing alongside the more clearly historically-grounded drift points identified in the 2000s and 2020s. Overall, the drift detection approach successfully recovers several of the major inflection points in LEGO's product history without using any label information, supporting the central hypothesis that structural, label-free features can surface meaningful shifts in product design over time.
+Two additional drift points, 1982–1984 and 1992–1993, do not correspond to any milestone identified a priori in [Section 2](#2-problem-statement). Both occur in relatively early, lower-volume windows (137 and 179 sets respectively, per the appendix table), where smaller cohort sizes can produce noisier centroid estimates and inflate apparent drift independent of any genuine structural shift. This suggests that some flagged points, particularly in the earlier decades of the catalog, may partly reflect sampling variability rather than a true change in set design philosophy, a limitation worth weighing alongside the more clearly historically-grounded drift points identified in the 2000s and 2020s. Overall, the drift detection approach successfully recovers several of the major inflection points in LEGO's product history without using any label information, supporting the central hypothesis that structural, label-free features can surface meaningful shifts in product design over time.
 
-**Table 4. Flagged drift events exceeding the threshold $\mu_\delta + 1\sigma_\delta = 18.228$, ranked by drift magnitude.**
+**Table: Flagged drift events exceeding the threshold $\mu_\delta + 1\sigma_\delta = 18.228$, ranked by drift magnitude**
 
 | Run | Drift | Year Window |
-|---|---:|---|
+|---:|---:|---|
 | 40 | 23.187 | 2023 |
 | 25 | 22.969 | 2008 |
 | 24 | 22.781 | 2007 |
@@ -200,11 +207,11 @@ Two additional drift points, 1982–1984 and 1992–1993, do not correspond to a
 
 ### 5.3 DBSCAN Robustness and External Validation
 
-To assess whether the $k$-means-based clustering structure reflects genuine groupings in the data rather than an artifact of its spherical-cluster assumption, DBSCAN was independently fit to each cohort using the $\epsilon$ value determined in [Appendix F](#76-epsilon-determination-for-dbscan). Agreement between the two methods was measured using Adjusted Rand Index (ARI) and Normalized Mutual Information (NMI) on the overlapping set membership between cohorts, along with the fraction of points DBSCAN labeled as noise. Full results are reported in Table 6 ([Appendix G](#77-dbscan-robustness-results)).
+To assess whether the $k$-means-based clustering structure reflects genuine groupings in the data rather than an artifact of its spherical-cluster assumption, DBSCAN was independently fit to each cohort using the $\epsilon$ value determined in [Appendix 7.4](#74-epsilon-determination-for-dbscan). Agreement between the two methods was measured using Adjusted Rand Index (ARI) and Normalized Mutual Information (NMI) on the overlapping set membership between cohorts, along with the fraction of points DBSCAN labeled as noise. Full results are reported in [Appendix 7.6](#76-dbscan-robustness-results).
 
-Agreement between the two clustering methods varies substantially across cohorts. Several windows show strong correspondence: window 4 (1980–1981) achieves an ARI of 0.981 and NMI of 0.874, and windows 0, 14, and 17 all exceed ARI $= 0.7$, indicating that in these periods DBSCAN, run without any constraint on cluster count, recovers essentially the same grouping structure as $k$-means. At the other extreme, several windows show near-zero agreement, most notably window 42 (2025, ARI $= 0.003$, NMI $= 0.004$), along with windows 15, 18, 19, and 32, all below ARI $= 0.06$.
+Agreement between the two clustering methods varies substantially across cohorts. Several windows show strong correspondence: window 4 (1980–1981) achieves an ARI of 0.981 and NMI of 0.874, and windows 0, 14, and 17 all exceed ARI = 0.7, indicating that in these periods DBSCAN, run without any constraint on cluster count, recovers essentially the same grouping structure as $k$-means. At the other extreme, several windows show near-zero agreement, most notably window 42 (2025, ARI = 0.003, NMI = 0.004), along with windows 15, 18, 19, and 32, all below ARI = 0.06.
 
-Comparing agreement scores at the drift points identified in [Section 5.2](#52-temporal-clustering) against all other windows shows a modest but consistent pattern: the average ARI across the nine flagged drift windows is 0.266, compared to 0.303 across the remaining windows. This is broadly consistent with the interpretation that periods of genuine structural reorganization are harder for both clustering methods to agree on, since the underlying data itself is less stable during these transitions. However, this difference is small relative to the spread within each group, and window 42 alone, an extreme outlier at ARI $= 0.003$, accounts for a meaningful share of the gap; excluding it, the average ARI at the remaining eight drift windows rises to 0.296, nearly identical to the non-drift average. This suggests the drift-agreement relationship should be treated as a mild, suggestive trend rather than strong confirmatory evidence, and that window 42 in particular, the most recent complete cohort and the one used as the $k$ reference cohort in [Section 4.4](#44-temporal-clustering), may warrant separate investigation as a special case.
+Comparing agreement scores at the drift points identified in [Section 5.2](#52-temporal-clustering) against all other windows shows a modest but consistent pattern: the average ARI across the nine flagged drift windows is 0.266, compared to 0.303 across the remaining windows. This is broadly consistent with the interpretation that periods of genuine structural reorganization are harder for both clustering methods to agree on, since the underlying data itself is less stable during these transitions. However, this difference is small relative to the spread within each group, and window 42 alone, an extreme outlier at ARI = 0.003, accounts for a meaningful share of the gap; excluding it, the average ARI at the remaining eight drift windows rises to 0.296, nearly identical to the non-drift average. This suggests the drift-agreement relationship should be treated as a mild, suggestive trend rather than strong confirmatory evidence, and that window 42 in particular, the most recent complete cohort and the one used as the $k$ reference cohort in [Section 4.4](#44-temporal-clustering), may warrant separate investigation as a special case.
 
 Noise fractions, meanwhile, do not show an obvious relationship to drift status: the highest noise fraction in the dataset (0.210, window 14) occurs at a non-drift cohort, while several drift-flagged windows (e.g., window 24 at 0.048, window 42 at 0.008) show low noise. This indicates that DBSCAN's tendency to label points as noise is driven more by local density variation within a given cohort's feature space than by the magnitude of drift from the previous period.
 
@@ -212,7 +219,7 @@ Overall, while agreement between $k$-means and DBSCAN is far from uniform across
 
 ### 5.4 Limitations and Future Work
 
-Several limitations of this analysis are worth noting. First, cohort size varies considerably across the dataset's history (Table 5), and smaller early-era cohorts produce noisier centroid estimates; this likely explains why two of the nine flagged drift points (1982–1984 and 1992–1993) do not correspond to any hypothesized historical milestone, as discussed in [Section 5.2](#52-temporal-clustering). Second, the DBSCAN robustness check in [Section 5.3](#53-dbscan-robustness-and-external-validation) used a single $\epsilon$ value fit across the entire dataset ([Appendix F](#76-epsilon-determination-for-dbscan)); since feature density plausibly varies across eras as LEGO's catalog diversified, a fixed $\epsilon$ may be better suited to some cohorts than others, and a per-cohort $\epsilon$ selection could be explored in future work. Third, theme labels were used only for external validation and not as clustering features; this means the analysis is well-suited to detecting broad structural shifts but may miss more subtle drift occurring *within* a single theme over time. Finally, the drift-point threshold $\mu_\delta + \sigma_\delta$ is a simple heuristic rather than a formally validated statistical test; future work could apply a more rigorous change-point detection framework, or bootstrap confidence intervals around $\Delta_t$, to better distinguish genuine structural drift from cohort-size-driven noise, particularly in the smaller early-era windows.
+Several limitations of this analysis are worth noting. First, cohort size varies considerably across the dataset's history (see appendix table), and smaller early-era cohorts produce noisier centroid estimates; this likely explains why two of the nine flagged drift points (1982–1984 and 1992–1993) do not correspond to any hypothesized historical milestone, as discussed in [Section 5.2](#52-temporal-clustering). Second, the DBSCAN robustness check in [Section 5.3](#53-dbscan-robustness-and-external-validation) used a single $\epsilon$ value fit across the entire dataset ([Appendix 7.4](#74-epsilon-determination-for-dbscan)); since feature density plausibly varies across eras as LEGO's catalog diversified, a fixed $\epsilon$ may be better suited to some cohorts than others, and a per-cohort $\epsilon$ selection could be explored in future work. Third, theme labels were used only for external validation and not as clustering features; this means the analysis is well-suited to detecting broad structural shifts but may miss more subtle drift occurring *within* a single theme over time. Finally, the drift-point threshold $\mu_\delta + \sigma_\delta$ is a simple heuristic rather than a formally validated statistical test; future work could apply a more rigorous change-point detection framework, or bootstrap confidence intervals around $\Delta_t$, to better distinguish genuine structural drift from cohort-size-driven noise, particularly in the smaller early-era windows.
 
 ## 6. Conclusion
 
@@ -222,19 +229,22 @@ LEGO has long been a passion of mine from a very young age. While my appreciatio
 
 This project gives me a great opportunity to combine a personal passion for LEGO with the machine learning techniques studied in this course. By applying clustering and drift detection methods to decades of LEGO set data, I hope to uncover patterns in the evolution of the brand and show how the composition of the product design which has made this iconic brand so successful reveals shifts not obvious to the human eye.
 
+---
+
 ## 7. Appendix
 
 ### 7.1 Rebrickable Entity Relationship Diagram
 
-> **Figure A1.** Database schema for the Rebrickable [[Rebrickable, 2024]](#references) LEGO dataset. The relational structure links LEGO sets to inventories, parts, colors, themes, and minifigures, providing the foundation for feature engineering and longitudinal analysis of changes in LEGO product design over time.
-> `images/ERD.png`
+![Rebrickable ERD](images/ERD.png)
+
+*Figure: Database schema for the Rebrickable [6] LEGO dataset. The relational structure links LEGO sets to inventories, parts, colors, themes, and minifigures, providing the foundation for feature engineering and longitudinal analysis of changes in LEGO product design over time.*
 
 ### 7.2 Breakdown of Number of Sets per Time Window
 
-**Table 5. Number of Sets per Time Window**
+**Table: Number of Sets per Time Window**
 
 | Window | num sets | min | max | | Window | num sets | min | max |
-|---|---:|---|---|---|---|---:|---|---|
+|---:|---:|---:|---:|---|---:|---:|---:|---:|
 | 0 | 56 | 1955 | 1966 | | 22 | 227 | 2005 | 2005 |
 | 1 | 131 | 1967 | 1973 | | 23 | 216 | 2006 | 2006 |
 | 2 | 110 | 1974 | 1976 | | 24 | 209 | 2007 | 2007 |
@@ -258,35 +268,51 @@ This project gives me a great opportunity to combine a personal passion for LEGO
 | 20 | 269 | 2003 | 2003 | | 42 | 640 | 2025 | 2025 |
 | 21 | 250 | 2004 | 2004 | | 43 | 452 | 2026 | 2026 |
 
-*Number of sets per time window. Each window aggregates one or more consecutive release years to balance sample sizes across the dataset's history; **Window** is the window index, **num sets** is the count of LEGO sets falling in that window, and **min**/**max** give the first and last release year included in the window.*
+Each window aggregates one or more consecutive release years to balance sample sizes across the dataset's history; **Window** is the window index, **num sets** is the count of LEGO sets falling in that window, and **min**/**max** give the first and last release year included in the window.
 
-### 7.3 Cluster Determination Charts
-
-This appendix presents supplementary cluster determination graphs that support the discussion in [Section 5.1](#51-optimal-number-of-clusters).
-
-> **Figure A2.** Elbow method plot of within-cluster sum of squares (inertia) vs. number of clusters ($k$). Inertia decreases sharply from $k=4$ to $k=6$, then flattens out beyond $k=8$, marking the elbow point — the $k$ value beyond which additional clusters yield diminishing returns.
-> `Code/outputs/elbow_plt.png`
-
-> **Figure A3.** Silhouette score across $k=4$–$15$. Score peaks sharply at $k=4$ ($\approx 0.51$), then drops and stays consistently lower for all higher $k$ values, confirming $k=4$ as the best choice for cluster separation and cohesion.
-> `Code/outputs/silhouette_plt.png`
-
-### 7.4 Additional UMAP Visualizations
+### 7.3 Additional UMAP Visualizations
 
 This appendix presents supplementary UMAP visualizations that support the discussion in [Section 4.3](#43-dimensionality-reduction-for-visualization) (dimensionality reduction for visualization).
 
-> **Figure A4.** Two-dimensional UMAP embedding faceted by time window. In each panel, points from that window are highlighted in color and all other points are shown in gray for reference.
-> `Code/outputs/UMAP_grid_by_window.png`
+![UMAP grid faceted by window](Code/outputs/UMAP_grid_by_window.png)
 
-Figure A4 shows the same two-dimensional embedding as Figure 2, but faceted by individual time window rather than using a single continuous color scale. In each panel, points belonging to that window are highlighted in color while all other points are shown in gray for reference. This view makes the temporal drift within clusters easier to inspect than a single overlaid plot. In the earliest windows (0 through roughly 5), highlighted points are concentrated almost entirely in a small region of the upper cluster, indicating that sets released in this period are compositionally similar to one another and represent a narrow slice of the overall feature space. Moving through the middle windows, the highlighted region expands and begins to populate the lower cluster as well, suggesting the introduction of new set types over time rather than a simple continuation of earlier patterns. By the later windows (roughly 30 onward), highlighted points spread across nearly the full extent of both major clusters, indicating that recent sets span a much broader range of the feature space than earlier ones. This progressive broadening is consistent with the interpretation in [Section 4.3](#43-dimensionality-reduction-for-visualization) that set diversity, in terms of scale, composition, and minifigure content, has increased over time, even though time window itself is not the primary axis separating the clusters.
+*Figure: Two-dimensional UMAP embedding faceted by time window. In each panel, points from that window are highlighted in color and all other points are shown in gray for reference.*
 
-> **Figure A5.** Three-dimensional UMAP embedding of LEGO sets viewed from multiple angles, colored by time window.
-> `Code/outputs/UMAP_embedding_3d_multiangle.png`
+This figure shows the same two-dimensional embedding as the primary UMAP figure, but faceted by individual time window rather than using a single continuous color scale. In each panel, points belonging to that window are highlighted in color while all other points are shown in gray for reference. This view makes the temporal drift within clusters easier to inspect than a single overlaid plot. In the earliest windows (0 through roughly 5), highlighted points are concentrated almost entirely in a small region of the upper cluster, indicating that sets released in this period are compositionally similar to one another and represent a narrow slice of the overall feature space. Moving through the middle windows, the highlighted region expands and begins to populate the lower cluster as well, suggesting the introduction of new set types over time rather than a simple continuation of earlier patterns. By the later windows (roughly 30 onward), highlighted points spread across nearly the full extent of both major clusters, indicating that recent sets span a much broader range of the feature space than earlier ones. This progressive broadening is consistent with the interpretation in [Section 4.3](#43-dimensionality-reduction-for-visualization) that set diversity, in terms of scale, composition, and minifigure content, has increased over time, even though time window itself is not the primary axis separating the clusters.
 
-Figure A5 shows the three-dimensional UMAP embedding from multiple viewing angles, used to confirm that no additional cluster structure is hidden along a third dimension beyond what is visible in the two-dimensional embedding.
+The figure below shows the three-dimensional UMAP embedding from multiple viewing angles, used to confirm that no additional cluster structure is hidden along a third dimension beyond what is visible in the two-dimensional embedding.
+
+![UMAP 3D embedding multi-angle](Code/outputs/UMAP_embedding_3d_multiangle.png)
+
+*Figure: Three-dimensional UMAP embedding of LEGO sets viewed from multiple angles, colored by time window.*
+
+### 7.4 Epsilon Determination for DBSCAN
+
+This appendix presents supplementary graphs and discussion of the selection of the $\epsilon$ value used to tune the DBSCAN model used for a robustness check.
+
+![K-distance plot for DBSCAN eps selection](Code/outputs/k_distance_plt.png)
+
+*Figure: K-distance plot (24-NN distances, sorted ascending) used for DBSCAN eps selection. The curve remains relatively flat and gradually increasing up to approximately point 600, followed by a sharp upward inflection — the "knee" — indicating the optimal eps value of 5.2014.*
+
+The k-distance plot is a standard heuristic for selecting the `eps` parameter in DBSCAN, where $k$ corresponds to `min_samples` (here, the 24th nearest neighbor distance for each point). By sorting these distances in ascending order and plotting them, the resulting curve reveals the density structure of the dataset: points in dense regions have small $k$-NN distances and cluster together in the flat portion of the curve, while points in sparse regions or outliers have much larger distances and appear in the steeply rising tail. In this plot, the distances stay below roughly 5 units for the first ~600 points, indicating that the majority of the dataset lies in reasonably dense, well-connected regions.
+
+The key feature to identify is the "knee" or "elbow" of the curve — the point where the distance values transition from slow, gradual growth to a sharp, near-vertical increase. This inflection marks the natural boundary between core/border points (which DBSCAN should treat as part of clusters) and noise points or extreme outliers (which lie much farther from their neighbors). Here, that knee occurs around point 600–610, corresponding to a 24-NN distance of approximately 5.2, which was selected as the `eps` value. Choosing `eps` at this inflection balances two failure modes: setting `eps` too low (which fragments the data into excessive small clusters and/or classifies too many points as noise), or too high (which merges distinct clusters together into a single large one). The steep tail beyond the knee — jumping from ~5 to over 25 in the last few dozen points — reflects a small number of increasingly isolated points that are appropriately treated as noise under the chosen `eps`.
+
+### 7.4b Cluster Determination Charts
+
+This appendix presents supplementary cluster determination graphs that support the discussion in [Section 5.1](#51-optimal-number-of-clusters).
+
+![Elbow method plot](Code/outputs/elbow_plt.png)
+
+*Figure: Elbow method plot of within-cluster sum of squares (inertia) vs. number of clusters (k). Inertia decreases sharply from k=4 to k=6, then flattens out beyond k=8, marking the elbow point — the k value beyond which additional clusters yield diminishing returns.*
+
+![Silhouette score plot](Code/outputs/silhouette_plt.png)
+
+*Figure: Silhouette score across k=4–15. Score peaks sharply at k=4 (≈0.51), then drops and stays consistently lower for all higher k values, confirming k=4 as the best choice for cluster separation and cohesion.*
 
 ### 7.5 Temporal Drift Results
 
-**Table 3. Drift metrics between consecutive clustering runs, mapped to their corresponding year windows.**
+**Table: Drift metrics between consecutive clustering runs, mapped to their corresponding year windows**
 
 | From Run | To Run | Mean Drift | Max Drift | Total Drift | Year Window |
 |---:|---:|---:|---:|---:|---|
@@ -334,22 +360,25 @@ Figure A5 shows the three-dimensional UMAP embedding from multiple viewing angle
 | 41 | 42 | 21.036 | 65.434 | 84.143 | 2025 |
 | 42 | 43 | 10.940 | 38.842 | 43.759 | 2026 |
 
-The mean and standard deviation of the drift values were computed as $\mu_\delta = 11.709$ and $\sigma_\delta = 6.519$, respectively, yielding a threshold of $\mu_\delta + 1\sigma_\delta = 18.228$. Using this threshold, 9 out of 43 transitions were flagged as significant drift events ($t^*$) — see Table 4 in [Section 5.2](#52-temporal-clustering).
+The mean and standard deviation of the drift values were computed as $\mu_\delta = 11.709$ and $\sigma_\delta = 6.519$, respectively, yielding a threshold of $\mu_\delta + 1\sigma_\delta = 18.228$. Using this threshold, 9 out of 43 transitions were flagged as significant drift events ($t^*$), summarized in the table below.
 
-### 7.6 Epsilon Determination for DBSCAN
+**Table: Flagged drift events exceeding the threshold $\mu_\delta + 1\sigma_\delta = 18.228$, ranked by drift magnitude**
 
-This appendix presents supplementary graphs and discussion of the selection of the $\epsilon$ value used to tune the DBSCAN model used for a robustness check.
+| Run | Drift | Year Window |
+|---:|---:|---|
+| 40 | 23.187 | 2023 |
+| 25 | 22.969 | 2008 |
+| 24 | 22.781 | 2007 |
+| 20 | 22.328 | 2003 |
+| 39 | 21.716 | 2022 |
+| 42 | 21.036 | 2025 |
+| 10 | 20.489 | 1992–1993 |
+| 21 | 20.273 | 2004 |
+| 5 | 19.203 | 1982–1984 |
 
-> **Figure A6.** K-distance plot (24-NN distances, sorted ascending) used for DBSCAN eps selection. The curve remains relatively flat and gradually increasing up to approximately point 600, followed by a sharp upward inflection — the "knee" — indicating the optimal eps value of 5.2014.
-> `Code/outputs/k_distance_plt.png`
+### 7.6 DBSCAN Robustness Results
 
-The k-distance plot is a standard heuristic for selecting the `eps` parameter in DBSCAN, where $k$ corresponds to `min_samples` (here, the 24th nearest neighbor distance for each point). By sorting these distances in ascending order and plotting them, the resulting curve reveals the density structure of the dataset: points in dense regions have small $k$-NN distances and cluster together in the flat portion of the curve, while points in sparse regions or outliers have much larger distances and appear in the steeply rising tail. In this plot, the distances stay below roughly 5 units for the first ~600 points, indicating that the majority of the dataset lies in reasonably dense, well-connected regions.
-
-The key feature to identify is the "knee" or "elbow" of the curve — the point where the distance values transition from slow, gradual growth to a sharp, near-vertical increase. This inflection marks the natural boundary between core/border points (which DBSCAN should treat as part of clusters) and noise points or extreme outliers (which lie much farther from their neighbors). Here, that knee occurs around point 600–610, corresponding to a 24-NN distance of approximately 5.2, which was selected as the `eps` value. Choosing `eps` at this inflection balances two failure modes: setting `eps` too low (which fragments the data into excessive small clusters and/or classifies too many points as noise), or too high (which merges distinct clusters together into a single large one). The steep tail beyond the knee — jumping from ~5 to over 25 in the last few dozen points — reflects a small number of increasingly isolated points that are appropriately treated as noise under the chosen `eps`.
-
-### 7.7 DBSCAN Robustness Results
-
-**Table 6. Clustering evaluation metrics (ARI, NMI, and Noise Fraction) per index.**
+**Table: Clustering evaluation metrics (ARI, NMI, and Noise Fraction) per index**
 
 | Index | ARI | NMI | Noise | | Index | ARI | NMI | Noise |
 |---:|---:|---:|---:|---|---:|---:|---:|---:|
@@ -376,15 +405,17 @@ The key feature to identify is the "knee" or "elbow" of the curve — the point 
 | 20 | 0.299 | 0.378 | 0.097 | | 42 | 0.003 | 0.004 | 0.008 |
 | 21 | 0.397 | 0.449 | 0.152 | | 43 | 0.159 | 0.125 | 0.033 |
 
-*The index column in the above table corresponds to the window value in [Appendix B](#72-breakdown-of-number-of-sets-per-time-window).*
+The index column in the above table corresponds to the window value in [Appendix 7.2](#72-breakdown-of-number-of-sets-per-time-window).
+
+---
 
 ## References
 
-- Chi, Y., Song, X., Zhou, D., Hino, K., & Tseng, B. L. (2007). Evolutionary spectral clustering by incorporating temporal smoothness. In *Proceedings of the 13th ACM SIGKDD International Conference on Knowledge Discovery and Data Mining* (pp. 153–162). https://doi.org/10.1145/1281192.1281212
-- Ester, M., Kriegel, H.-P., Sander, J., & Xu, X. (1996). A density-based algorithm for discovering clusters in large spatial databases with noise. In *Proceedings of the Second International Conference on Knowledge Discovery and Data Mining (KDD-96)* (pp. 226–231). AAAI Press.
-- Gama, J., Žliobaitė, I., Bifet, A., Pechenizkiy, M., & Bouchachia, A. (2014). A survey on concept drift adaptation. *ACM Computing Surveys*, 46(4), 1–37. https://doi.org/10.1145/2523813
-- Kuhn, H. W. (1955). The Hungarian method for the assignment problem. *Naval Research Logistics Quarterly*, 2(1–2), 83–97. https://doi.org/10.1002/nav.3800020109
-- McInnes, L., Healy, J., & Melville, J. (2018). UMAP: Uniform manifold approximation and projection for dimension reduction. *arXiv preprint arXiv:1802.03426*. https://arxiv.org/abs/1802.03426
-- Mishra, A., & Stamp, M. (2025). Cluster analysis and concept drift detection in malware. *arXiv preprint arXiv:2502.14135*. https://arxiv.org/abs/2502.14135
-- Rebrickable. (2024). LEGO sets database downloads. https://rebrickable.com/downloads/
-- Rousseeuw, P. J. (1987). Silhouettes: A graphical aid to the interpretation and validation of cluster analysis. *Journal of Computational and Applied Mathematics*, 20, 53–65. https://doi.org/10.1016/0377-0427(87)90125-7
+1. Chi, Y., Song, X., Zhou, D., Hino, K., & Tseng, B. L. (2007). Evolutionary spectral clustering by incorporating temporal smoothness. In *Proceedings of the 13th ACM SIGKDD International Conference on Knowledge Discovery and Data Mining* (pp. 153–162). https://doi.org/10.1145/1281192.1281212
+2. Ester, M., Kriegel, H.-P., Sander, J., & Xu, X. (1996). A density-based algorithm for discovering clusters in large spatial databases with noise. In *Proceedings of the Second International Conference on Knowledge Discovery and Data Mining (KDD-96)* (pp. 226–231). AAAI Press.
+3. Gama, J., Žliobaitė, I., Bifet, A., Pechenizkiy, M., & Bouchachia, A. (2014). A survey on concept drift adaptation. *ACM Computing Surveys*, 46(4), 1–37. https://doi.org/10.1145/2523813
+4. Kuhn, H. W. (1955). The Hungarian method for the assignment problem. *Naval Research Logistics Quarterly*, 2(1–2), 83–97. https://doi.org/10.1002/nav.3800020109
+5. McInnes, L., Healy, J., & Melville, J. (2018). UMAP: Uniform manifold approximation and projection for dimension reduction. *arXiv preprint arXiv:1802.03426*. https://arxiv.org/abs/1802.03426
+6. Rebrickable. (2024). LEGO sets database downloads. https://rebrickable.com/downloads/
+7. Mishra, A., & Stamp, M. (2025). Cluster analysis and concept drift detection in malware. *arXiv preprint arXiv:2502.14135*. https://arxiv.org/abs/2502.14135
+8. Rousseeuw, P. J. (1987). Silhouettes: A graphical aid to the interpretation and validation of cluster analysis. *Journal of Computational and Applied Mathematics*, 20, 53–65. https://doi.org/10.1016/0377-0427(87)90125-7
